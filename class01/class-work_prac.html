@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<style>
+
+</style>
+
+
+<script>
+
+var margin = {top: 20, right: 30, bottom: 20, left: 30};
+
+var width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+/*Didnt Call svg but it got created*/
+var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.top+","+ margin.left +")");
+
+d3.tsv("quartet.tsv", ready)
+
+function ready(error, data){
+  if (error) return console.warn("This is a warning");
+
+  data.forEach(function(row) {
+    row.x = +row.x;
+    row.y = +row.y;
+  });
+
+  var two_data = data.filter(function(d) {return d.group == 'II'});
+
+  console.log(two_data);
+
+  var xScale = d3.scaleLinear()
+                 .domain([0, d3.max(two_data, function(d){return d.x})]).nice()
+                 .range([0, width])
+
+  var yScale = d3.scaleLinear()
+                 .domain([0, d3.max(two_data, function(d) {return d.y})]).nice()
+                 .range([height, 0])
+
+  var xAxis = d3.axisBottom(xScale)
+                .tickSize(-height);
+
+  var yAxis = d3.axisLeft(yScale)
+                .tickSize(-width);
+
+  svg.append("g")
+     .attr("transform", "translate(0, "+height+")")
+     .call(xAxis)
+
+  svg.append("g")
+     .call(yAxis)
+
+  svg.selectAll("circle")
+     .data(two_data).enter()
+     .append("circle")
+     .attr("r", 5)
+     //.attr("cx", function(d){return xScale(d.x)})
+     //.attr("cy", function(d){return yScale(d.y)})
+     .attr("transform", function(d){return "translate("+ xScale(d.x) + ","+ yScale(d.y)+")"})
+
+
+
+
+
+}
+
+
+
+
+</script>
+</body>
+</html>

@@ -1,63 +1,183 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-
-<style type="text/css">
-/* CSS Style Code goes here*/
-</style>
-
+<html>
 <body>
-<H1> Lets make a scatter plot</H1>
-</body>
 
 <script src="https://d3js.org/d3.v4.min.js"></script>
+<style>
 
-<script type="text/javascript">
+body {
+    font: 16px sans-serif;
+}
 
-var groupTwoDataset = [
-    { "name": "II", "x":  10, "y":   9.14 },
-    { "name": "II", "x":  8 , "y": 8.14 },
-    { "name": "II", "x":  13, "y":   8.74 },
-    { "name": "II", "x":  9 , "y": 8.77 },
-    { "name": "II", "x":  11, "y":   9.26 },
-    { "name": "II", "x":  14, "y":   8.1 },
-    { "name": "II", "x":  6 , "y": 6.13 },
-    { "name": "II", "x":  4 , "y": 3.1 },
-    { "name": "II", "x":  12, "y":   9.13 },
-    { "name": "II", "x":  7 , "y": 7.26 },
-    { "name": "II", "x":  5 , "y": 4.74 }
-  ];
-var margin = {top: 20, right: 10, bottom: 20, left: 30};
+.circle-label {
+    font: 12px sans-serif;
+    opacity: 0;
+}
+
+.y path {
+    fill: #efefef;
+}
+
+.axis line {
+    stroke: #bfbfbf;
+}
+
+/*.circle {
+    fill: steelblue;
+}*/
+
+</style>
+
+<script>
+
+// Anscombe's Quartet Checklist 
+// 1. Axes - x and a y axis  
+// 2. Values - tick marks, labels   
+// 3. x scale and a y scale  
+// 4. min and max value, and a min and max value in pixels 
+// 5. and a line for that axes  
+// 6. gridlines 
+// 7. we need that dataset 
+// 8. we need to make circles representing that dataset 
+// 9. the circles location is based on the x and y value 
+// 10. a legend 
+// 11. Title 
+// 12. the trend line 
+// 13. Create our canvas, the SVG 
+
+
+// NEW STUFF
+// 1. Load in the data from a flat file (local file) DONE 
+// 2. Use groups to create the circles and add text labels DONE 
+// 3. Styling to the chart 
+// 4. Iternation - hover over a circle and get more info
+// IF WE HAVE TIME
+// Transition between different datasets 
+
+// STYLES
+// Font size
+// colors - Blue colors 
+// round the numbers 
+// white gridlines 
+// gray background 
+// fix our margins
+
+
+
+var margin = {top: 20, right: 30, bottom: 20, left: 30};
 
 var width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 
- var xScale = d3.scaleLinear()
-    .domain([0, 15]) // this is based on the data
-    .range([40, width]); // this is based on the physical output 
-
-var yScale = d3.scaleLinear()
-    .domain([0, 12])
-    .range([height, 0]);
- var xAxis = d3.axisBottom(xScale);
- var yAxis = d3.axisLeft(yScale);
 // This is where I add the canvas to our visualization 
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
  
- svg.append("g")
-    .attr("transform", "translate(0," + height + ")")
-    .call(xAxis)
-  svg.append("g")
-    .call(yAxis)
-  svg.selectAll("circle")
-    .data(groupTwoDataset)
-  .enter().append("circle")
-    .attr("r", 5)
-    .attr("cx", function(d) { return xScale(d.x) })
-    .attr("cy", function(d) { return yScale(d.y) })
+
+d3.tsv("quartet.tsv", ready)
+
+function ready(error, data) {
+    if (error) return console.warn(error);
+
+    data.forEach(function(row) {
+        row.x = +row.x;
+        row.y = +row.y;
+    })
+
+
+    console.log(data);
+
+    var groupTwoData = data.filter(function(d) { return d.group == 'II' })
+                           .sort(function(a, b) { return a.x < b.x })
+
+    console.log(groupTwoData);
+
+    xScale = d3.scaleLinear()
+        .domain([0, d3.max(groupTwoData, function(d) { return d.x })*1.1]).nice()
+        .range([0, width])
+
+    yScale = d3.scaleLinear()
+        .domain([0, d3.max(groupTwoData, function(d) { return d.y })]).nice()
+        .range([height, 0])
+
+    var xAxis = d3.axisBottom(xScale)
+        .tickSize(-height);
+
+    var yAxis = d3.axisLeft(yScale)
+        .tickSize(-width);
+
+    svg.append("g")
+       .attr("class", "y axis")
+       .call(yAxis)
+
+    svg.append("g")
+       .attr("class", "x axis")
+       .attr("transform", "translate(0," + height + ")")
+       .call(xAxis)
+
+    d3.select(".y")
+      .select("text")
+      .remove()
+
+    var circleGroup = svg.selectAll(".circleGroups")
+        .data(groupTwoData)
+      .enter().append("g")
+          .attr("class", "circleGroups")
+          .attr("transform", function(d) { return "translate(" + xScale(d.x) + "," + yScale(d.y) + ")" })
+
+    var colorScale = d3.scaleSequential(d3.interpolateCool)
+        .domain(xScale.domain());
+
+    circleGroup.append("circle")
+        .attr("class", "circle")
+          .attr("r", 10)
+          .style("fill", function(d) { return colorScale(d.x) })
+
+    circleGroup.append("text")
+        .attr("class", "circle-label")
+        // .attr("dy", 16)
+        .style("text-anchor", function(d, i) {  
+            if(i < 6) {
+                return "start"
+            } else {
+                return "end"
+            }
+        })
+        .text(function(d) { return Math.round(d.x,1) + "," + Math.round(d.y,1) })
+
+    circleGroup.on("mouseenter", function() {
+
+        d3.select(this)
+          .select("text")
+          .style("opacity", 1)
+
+        d3.select(this)
+          .transition()
+          .ease(d3.easeElastic)
+          .duration(3000)
+          .select("circle")
+          .attr("r", 20)
+          .style("fill", "red")
+
+    }).on("mouseleave", function() {
+
+        d3.select(this)
+          .select("text")
+          .style("opacity", 0)
+
+        d3.select(this)
+          .transition()
+          .ease(d3.easeElastic)
+          .duration(3000)
+          .select("circle")
+          .attr("r", 10)
+            .style("fill", function(d) { return colorScale(d.x) })
+    })
+}
 
 
 </script>
